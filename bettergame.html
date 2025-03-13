@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Box Dodge Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid black;
+            background-color: white;
+        }
+        h1 {
+            color: #333;
+        }
+        #scoreDisplay {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Box Dodge Game</h1>
+    <div>Score: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <p>Use W to move up and S to move down. Dodge the red balls!</p>
+
+    <script>
+        // Get canvas and context
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreDisplay = document.getElementById("score");
+
+        // Game variables
+        let player = { x: 50, y: 300, width: 30, height: 30, speed: 5 };
+        let cannons = [
+            { x: 750, y: 100 },
+            { x: 750, y: 300 },
+            { x: 750, y: 500 }
+        ];
+        let balls = [];
+        let score = 0;
+        let gameRunning = true;
+
+        // Input handling
+        let keys = {};
+        document.addEventListener("keydown", (e) => keys[e.key] = true);
+        document.addEventListener("keyup", (e) => keys[e.key] = false);
+
+        // Ball class
+        class Ball {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 10;
+                this.speed = -(Math.random() * 3 + 2); // Random speed between -2 and -5
+                this.angle = (Math.random() - 0.5) * 0.5; // Slight random angle
+            }
+
+            update() {
+                this.x += this.speed;
+                this.y += this.angle;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = "red";
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        // Check collision between player and ball
+        function checkCollision(ball) {
+            return (
+                player.x < ball.x + ball.radius &&
+                player.x + player.width > ball.x - ball.radius &&
+                player.y < ball.y + ball.radius &&
+                player.y + player.height > ball.y - ball.radius
+            );
+        }
+
+        // Reset game
+        function resetGame() {
+            player.x = 50;
+            player.y = 300;
+            balls = [];
+            score = 0;
+            gameRunning = true;
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update player position
+            if (keys["w"] && player.y > 0) player.y -= player.speed;
+            if (keys["s"] && player.y < canvas.height - player.height) player.y += player.speed;
+
+            // Draw player
+            ctx.fillStyle = "blue";
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Draw cannons
+            ctx.fillStyle = "gray";
+            cannons.forEach(cannon => {
+                ctx.fillRect(cannon.x, cannon.y - 20, 30, 40);
+            });
+
+            // Spawn balls randomly
+            if (Math.random() < 0.02) { // Adjust spawn rate
+                const cannon = cannons[Math.floor(Math.random() * cannons.length)];
+                balls.push(new Ball(cannon.x, cannon.y));
+            }
+
+            // Update and draw balls
+            for (let i = balls.length - 1; i >= 0; i--) {
+                const ball = balls[i];
+                ball.update();
+                ball.draw();
+
+                // Remove balls that go off screen
+                if (ball.x < -ball.radius) {
+                    balls.splice(i, 1);
+                    continue;
+                }
+
+                // Check collision with player
+                if (checkCollision(ball)) {
+                    resetGame();
+                    break;
+                }
+            }
+
+            // Update score
+            score += 0.1;
+            scoreDisplay.textContent = Math.floor(score);
+
+            // Request next frame
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        gameLoop();
+    </script>
+</body>
+</html>
